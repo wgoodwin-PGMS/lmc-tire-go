@@ -184,6 +184,7 @@ class TrdInterface:
         if road_course:
             # logger.debug("===== ROAD COURSE =====")
             for col in temp_pop:
+                col = str(col)
                 if col.endswith("_lf"):
                     new_col = col.replace("_lf", "_rf")
                     if new_col not in col_list:
@@ -292,3 +293,42 @@ class TrdInterface:
         logger.info(f"Converted {payload_path} to Sweep Execution Plan")
 
         return json_sequence, csv_sequence
+
+    def get_segments(self, payload_path: str) -> dict:
+        with open(payload_path, "rb") as f:
+            payload = orjson.loads(f.read())
+
+        sequence = payload["data"]["plan"]["$sequence"]
+
+        for num in sequence:
+            if num["module_name"] == "dsmodel-lap-time-avl":
+                segments = num["plan_data"]["metadata"]["experiment"]["segments"]
+                break
+
+        segment_dict = {}
+        for segment in segments:
+            name = segment["label"]
+            start = segment["begin"]
+            end = segment["end"]
+
+            segment_dict[name] = [start, end]
+
+        for segment in segment_dict:
+            print(f"{segment}: {segment_dict[segment]}")
+
+        return segment_dict
+
+    def get_base_scalings(self, payload_path: str, corner: str) -> dict:
+        with open(payload_path, "rb") as f:
+            payload = orjson.loads(f.read())
+
+        sequence = payload["data"]["plan"]["$sequence"]
+
+        for num in sequence:
+            if num["module_name"] == "dsmodel-assembly":
+                tires = num["plan_data"]["metadata"]["vehicle"]["tires"]
+                break
+
+        base_scale = tires[corner.lower()]["scaling"]
+
+        return base_scale
